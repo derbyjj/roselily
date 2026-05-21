@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>羅絲莉莉 - 後台接單</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f0;}
+.header{background:#fff;padding:14px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.header h1{font-size:16px;font-weight:600;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.dot{width:10px;height:10px;border-radius:50%;background:#ccc;display:inline-block;transition:background 0.3s;}
+.dot.live{background:#1D9E75;}
+.conn-label{font-size:12px;color:#888;}
+.badge{background:#FAECE7;color:#993C1D;border-radius:12px;padding:3px 10px;font-size:13px;font-weight:600;}
+.notify-bar{background:#1D9E75;color:#fff;padding:12px 18px;font-size:14px;font-weight:600;display:none;align-items:center;gap:10px;}
+.notify-bar.show{display:flex;}
+.notify-bar button{margin-left:auto;background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #eee;}
+.tab{flex:1;padding:12px;font-size:13px;font-weight:500;border:none;background:transparent;border-bottom:3px solid transparent;color:#888;cursor:pointer;}
+.tab.active{color:#111;border-bottom-color:#1D9E75;}
+.content{padding:16px;max-width:900px;margin:0 auto;}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;color:#666;cursor:pointer;}
+.filter-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75;}
+.ocard{background:#fff;border:1px solid #eee;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.ocard.done{opacity:0.45;}
+.ocard.flash{animation:flash 0.8s ease;}
+@keyframes flash{0%,100%{background:#fff}40%{background:#E1F5EE}}
+.oc-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.oc-table{font-size:15px;font-weight:600;color:#111;}
+.oc-meta{font-size:11px;color:#aaa;text-align:right;line-height:1.7;}
+.oc-pickup{font-size:12px;color:#1D9E75;font-weight:500;margin-bottom:5px;}
+.oc-items{font-size:12px;color:#888;margin-bottom:5px;line-height:1.8;}
+.oc-remark{font-size:11px;color:#aaa;margin-bottom:10px;font-style:italic;}
+.oc-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.oc-total{font-size:15px;font-weight:600;color:#111;}
+.oc-save{font-size:11px;color:#1D9E75;margin-left:6px;}
+.sn{font-size:11px;background:#E1F5EE;color:#0F6E56;border-radius:4px;padding:2px 8px;}
+.sd{font-size:11px;background:#f0f0f0;color:#aaa;border-radius:4px;padding:2px 8px;}
+.btn-row{display:flex;gap:8px;}
+.done-btn{padding:7px 16px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer;font-weight:500;}
+.done-btn:hover{background:#f0f0f0;}
+.print-btn{padding:7px 16px;border-radius:8px;border:1px solid #1D9E75;background:#fff;font-size:13px;color:#1D9E75;cursor:pointer;font-weight:500;}
+.print-btn:hover{background:#E1F5EE;}
+.no-orders{text-align:center;color:#aaa;font-size:14px;padding:60px 0;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:#fff;border-radius:10px;padding:14px;border:1px solid #eee;}
+.stat-label{font-size:11px;color:#888;margin-bottom:6px;}
+.stat-val{font-size:24px;font-weight:700;color:#111;}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>羅絲莉莉 後台</h1>
+  <div class="header-right">
+    <span class="dot" id="dot"></span>
+    <span class="conn-label" id="connLabel">連線中...</span>
+    <span class="badge" id="badge" style="display:none">0</span>
+  </div>
+</div>
+<div id="notifyBar" class="notify-bar">
+  🔔 <span id="notifyText"></span>
+  <button onclick="hideNotify()">×</button>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('orders',this)">訂單列表</button>
+  <button class="tab" onclick="showTab('summary',this)">今日統計</button>
+</div>
+<div class="content">
+  <div id="tab-orders">
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('all',this)">全部</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">待處理</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">已完成</button>
+    </div>
+    <div id="oList"><div class="no-orders">載入中...</div></div>
+  </div>
+  <div id="tab-summary" style="display:none">
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+</div>
+
+<script>
+let orders=[], filter='all', ws, wsUrl;
+
+function getWsUrl(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  return `${proto}://${location.host}`;
+}
+
+function connect(){
+  ws=new WebSocket(getWsUrl());
+  ws.onopen=()=>{document.getElementById('dot').classList.add('live');document.getElementById('connLabel').textContent='即時連線';};
+  ws.onclose=()=>{document.getElementById('dot').classList.remove('live');document.getElementById('connLabel').textContent='重連中...';setTimeout(connect,3000);};
+  ws.onmessage=(e)=>{
+    const msg=JSON.parse(e.data);
+    if(msg.type==='new_order'){
+      orders.unshift(msg.order);renderOrders();updateBadge();
+      showNotify(`取餐號 ${msg.order.tbl}　${msg.order.pickup}　$${msg.order.final}`);
+      beep();
+    } else if(msg.type==='order_done'){
+      const o=orders.find(x=>x.id===msg.id);if(o){o.done=true;renderOrders();updateBadge();}
+    }
+  };
+}
+
+function beep(){
+  try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.setValueAtTime(0.3,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.5);o.start();o.stop(c.currentTime+0.5);}catch{}
+}
+
+async function loadOrders(){
+  try{const r=await fetch('/api/orders');orders=await r.json();renderOrders();updateBadge();}
+  catch{document.getElementById('oList').innerHTML='<div class="no-orders">無法連線到伺服器</div>';}
+}
+
+function setFilter(f,btn){filter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderOrders();}
+
+function showTab(name,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  document.getElementById('tab-orders').style.display=name==='orders'?'block':'none';
+  document.getElementById('tab-summary').style.display=name==='summary'?'block':'none';
+  if(name==='summary')renderStats();
+}
+
+function renderOrders(){
+  const list=document.getElementById('oList');
+  let shown=orders;
+  if(filter==='pending')shown=orders.filter(o=>!o.done);
+  if(filter==='done')shown=orders.filter(o=>o.done);
+  if(!shown.length){list.innerHTML='<div class="no-orders">沒有訂單</div>';return;}
+  list.innerHTML=shown.map(o=>`
+    <div class="ocard ${o.done?'done':''}" id="oc-${o.id}">
+      <div class="oc-hdr">
+        <div class="oc-table">取餐號 ${o.tbl} <span style="font-size:11px;color:#aaa;font-weight:400">${o.bf}</span></div>
+        <div class="oc-meta">${o.t}<br><span class="${o.done?'sd':'sn'}">${o.done?'已完成':'待處理'}</span></div>
+      </div>
+      <div class="oc-pickup">${o.pickup||''}</div>
+      <div class="oc-items">${o.items.map(i=>i.name+' ×'+i.qty).join('、')}</div>
+      ${o.rmk?`<div class="oc-remark">備註：${o.rmk}</div>`:''}
+      <div class="oc-foot">
+        <div><span class="oc-total">$${o.final}</span>${o.disc>0?` <span class="oc-save">省$${o.disc}</span>`:''}</div>
+        <div class="btn-row">
+          <button class="print-btn" onclick="printO(${o.id})">列印</button>
+          ${o.done?'':`<button class="done-btn" onclick="markDone(${o.id})">完成</button>`}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function markDone(id){
+  try{await fetch(`/api/orders/${id}/done`,{method:'POST'});const o=orders.find(x=>x.id===id);if(o){o.done=true;renderOrders();updateBadge();}}
+  catch{alert('操作失敗');}
+}
+
+function updateBadge(){
+  const p=orders.filter(o=>!o.done).length;
+  const el=document.getElementById('badge');el.style.display=p?'inline':'none';el.textContent=p+' 筆待處理';
+}
+
+function showNotify(msg){const b=document.getElementById('notifyBar');document.getElementById('notifyText').textContent=msg;b.classList.add('show');setTimeout(hideNotify,8000);}
+function hideNotify(){document.getElementById('notifyBar').classList.remove('show');}
+
+function printO(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const w=window.open('','_blank','width=400,height=600');
+  const rows=o.items.map(i=>`<tr><td>${i.name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">$${i.price*i.qty}</td></tr>`).join('');
+  const disc=o.disc>0?`<tr><td colspan="3" style="color:#0F6E56">套組優惠 -$${o.disc}</td></tr>`:'';
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>訂單#${o.id}</title>
+  <style>body{font-family:sans-serif;padding:20px;font-size:14px}h2{font-size:16px;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:5px 3px;border-bottom:1px solid #eee}.info{color:#888;font-size:12px;margin-bottom:4px}.pickup{color:#0F6E56;font-weight:bold;font-size:13px;margin-bottom:5px}.tot{font-weight:700;font-size:16px;margin-top:10px;text-align:right}</style>
+  </head><body><h2>羅絲莉莉嬰兒副食品</h2>
+  <div class="info">取餐號：${o.tbl} ｜ ${o.t} ｜ ${o.bf}</div>
+  <div class="pickup">${o.pickup||''}</div>
+  ${o.rmk?`<div class="info">備註：${o.rmk}</div>`:''}
+  <table><tr style="font-weight:700"><td>品項</td><td style="text-align:center">數量</td><td style="text-align:right">小計</td></tr>
+  ${rows}${disc}<tr><td colspan="3"><div class="tot">合計：$${o.final}</div></td></tr></table>
+  <script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+function renderStats(){
+  const pending=orders.filter(o=>!o.done).length;
+  const done=orders.filter(o=>o.done).length;
+  const revenue=orders.filter(o=>o.done).reduce((s,o)=>s+o.final,0);
+  const total=orders.reduce((s,o)=>s+o.final,0);
+  document.getElementById('statGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">總訂單數</div><div class="stat-val">${orders.length}</div></div>
+    <div class="stat-card"><div class="stat-label">待處理</div><div class="stat-val" style="color:#993C1D">${pending}</div></div>
+    <div class="stat-card"><div class="stat-label">已完成</div><div class="stat-val" style="color:#1D9E75">${done}</div></div>
+    <div class="stat-card"><div class="stat-label">已完成金額</div><div class="stat-val">$${revenue}</div></div>
+    <div class="stat-card"><div class="stat-label">全部訂單金額</div><div class="stat-val">$${total}</div></div>`;
+}
+
+loadOrders();
+connect();
+</script>
+</body>
+</html>
