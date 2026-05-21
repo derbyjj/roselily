@@ -44,7 +44,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .bundle-applied{background:#E1F5EE;border-radius:8px;padding:9px 12px;margin:9px 0;font-size:12px;color:#0F6E56;}
 .b-row{display:flex;justify-content:space-between;margin-bottom:3px;}
 .ci-price{min-width:52px;text-align:right;font-size:12px;color:#888;}
-.remark-row{margin-top:12px;}
+.contact-row{display:flex;gap:8px;margin-top:12px;}
+.contact-row input{flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;background:#fff;}
+.contact-row label{font-size:12px;color:#666;display:block;margin-bottom:5px;}
+.remark-row{margin-top:10px;}
 .remark-row label{font-size:12px;color:#666;display:block;margin-bottom:5px;}
 .remark-row textarea{width:100%;height:60px;font-size:12px;resize:none;border-radius:8px;border:1px solid #ddd;padding:8px;background:#fff;}
 .divider{border-top:1px solid #e5e5e5;margin-top:12px;padding-top:12px;}
@@ -55,14 +58,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .order-btn{width:100%;margin-top:12px;padding:13px;background:#1D9E75;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;}
 .order-btn:disabled{background:#aaa;cursor:not-allowed;}
 .empty-cart{font-size:13px;color:#aaa;text-align:center;padding:16px 0;}
-.success-banner{position:fixed;top:0;left:0;right:0;background:#1D9E75;color:#fff;padding:14px;font-size:15px;font-weight:600;display:none;align-items:center;justify-content:center;z-index:100;}
+.success-banner{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(29,158,117,0.96);color:#fff;display:none;align-items:center;justify-content:center;z-index:200;flex-direction:column;gap:16px;}
 .success-banner.show{display:flex;}
+.s-icon{font-size:80px;}
+.s-text{font-size:30px;font-weight:700;}
+.s-num{font-size:18px;opacity:0.9;}
 @media(max-width:500px){.menu-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
 <div class="app">
-<div id="successBanner" class="success-banner">✓ 訂單送出成功！</div>
+<div id="successBanner" class="success-banner"><div class="s-icon">✓</div><div class="s-text">訂單送出成功！</div><div class="s-num" id="successNum"></div></div>
 <div class="header">
   <div class="brand-name">蘿絲莉莉嬰兒副食品</div>
   <div class="brand-sub">冷凍鮮食副食品菜單</div>
@@ -85,6 +91,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   <div id="cItems"></div>
   <div id="cEmpty" class="empty-cart">尚未點餐，請從上方選取</div>
   <div id="bInfo"></div>
+  <div class="contact-row">
+    <div style="flex:1"><label>姓名（選填）</label><input type="text" id="cname" placeholder=""/></div>
+    <div style="flex:1"><label>電話（選填）</label><input type="tel" id="cphone" placeholder=""/></div>
+  </div>
   <div class="remark-row"><label>備註</label><textarea id="rmk"></textarea></div>
   <div id="cTotalSec" style="display:none">
     <div class="divider">
@@ -291,6 +301,8 @@ async function submitOrder(){
   const keys=Object.keys(cart);if(!keys.length){alert('請先選擇商品');return;}
   const tbl=document.getElementById('tnum').value||'未知';
   const rmk=document.getElementById('rmk').value.trim();
+  const cname=document.getElementById('cname').value.trim();
+  const cphone=document.getElementById('cphone').value.trim();
   const bf=isNoBeef()?'不吃牛':'吃牛';
   const pickupSel=document.getElementById('pickupTime');
   const pickupVal=pickupSel.value;
@@ -301,8 +313,16 @@ async function submitOrder(){
   const now=new Date();const t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   const btn=document.getElementById('orderBtn');btn.disabled=true;btn.textContent='送出中...';
   try{
-    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tbl,items,orig,disc,final,t,done:false,rmk,bf,bdetails:details,pickup:pickupLabel})});
-    if(res.ok){cart={};document.getElementById('rmk').value='';renderCart();updateProgress();const b=document.getElementById('successBanner');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),3000);}
+    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tbl,items,orig,disc,final,t,done:false,rmk,bf,bdetails:details,pickup:pickupLabel,cname,cphone})});
+    if(res.ok){
+      cart={};document.getElementById('rmk').value='';document.getElementById('cname').value='';document.getElementById('cphone').value='';renderCart();updateProgress();
+      // Auto increment order number
+      const tnumEl=document.getElementById('tnum');
+      const currentNum=parseInt(tnumEl.value)||0;
+      document.getElementById('successNum').textContent='取餐號：'+tbl;
+      const b=document.getElementById('successBanner');b.classList.add('show');
+      setTimeout(()=>{b.classList.remove('show');tnumEl.value=String(currentNum+1).padStart(2,'0');},2500);
+    }
     else alert('送出失敗，請重試');
   }catch{alert('無法連線到伺服器');}
   btn.disabled=false;btn.textContent='送出訂單';
