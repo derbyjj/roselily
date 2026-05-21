@@ -16,6 +16,17 @@ function saveOrders(orders) {
 
 let orders = loadOrders();
 let nextId = orders.length ? Math.max(...orders.map(o => o.id)) + 1 : 1;
+
+// 取餐號：從現有訂單最大號碼開始，每次 +1
+const TICKET_FILE = require('path').join(__dirname, 'ticket.json');
+function loadTicket() {
+  try { return JSON.parse(require('fs').readFileSync(TICKET_FILE,'utf8')).next || 1; }
+  catch { return 1; }
+}
+function saveTicket(n) {
+  require('fs').writeFileSync(TICKET_FILE, JSON.stringify({next: n}));
+}
+let nextTicket = loadTicket();
 const clients = new Set();
 
 function broadcast(msg) {
@@ -49,6 +60,16 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: true, order }));
       } catch { res.writeHead(400); res.end('Bad Request'); }
     }); return;
+  }
+
+  // GET /api/next-ticket - 取得下一個取餐號
+  if (url.pathname === '/api/next-ticket' && req.method === 'GET') {
+    const ticket = String(nextTicket).padStart(2, '0');
+    nextTicket++;
+    saveTicket(nextTicket);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ticket }));
+    return;
   }
 
   const doneMatch = url.pathname.match(/^\/api\/orders\/(\d+)\/done$/);
@@ -85,5 +106,5 @@ wss.on('connection', ws => {
 });
 
 server.listen(PORT, () => {
-  console.log(`羅絲莉莉點餐系統啟動！Port: ${PORT}`);
+  console.log(`蘿絲莉莉點餐系統啟動！Port: ${PORT}`);
 });
