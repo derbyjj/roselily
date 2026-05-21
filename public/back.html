@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>羅絲莉莉 - 後台接單</title>
+<title>蘿絲莉莉 - 後台接單</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f0;}
@@ -53,7 +53,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </head>
 <body>
 <div class="header">
-  <h1>羅絲莉莉 後台</h1>
+  <h1>蘿絲莉莉 後台</h1>
   <div class="header-right">
     <span class="dot" id="dot"></span>
     <span class="conn-label" id="connLabel">連線中...</span>
@@ -169,7 +169,7 @@ function printO(id){
   const disc=o.disc>0?`<tr><td colspan="3" style="color:#0F6E56">套組優惠 -$${o.disc}</td></tr>`:'';
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>訂單#${o.id}</title>
   <style>body{font-family:sans-serif;padding:20px;font-size:14px}h2{font-size:16px;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:5px 3px;border-bottom:1px solid #eee}.info{color:#888;font-size:12px;margin-bottom:4px}.pickup{color:#0F6E56;font-weight:bold;font-size:13px;margin-bottom:5px}.tot{font-weight:700;font-size:16px;margin-top:10px;text-align:right}</style>
-  </head><body><h2>羅絲莉莉嬰兒副食品</h2>
+  </head><body><h2>蘿絲莉莉嬰兒副食品</h2>
   <div class="info">取餐號：${o.tbl} ｜ ${o.t} ｜ ${o.bf}</div>
   <div class="pickup">${o.pickup||''}</div>
   ${o.rmk?`<div class="info">備註：${o.rmk}</div>`:''}
