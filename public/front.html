@@ -19,7 +19,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pickup-row{display:flex;align-items:center;gap:14px;padding:10px 16px 0;flex-wrap:wrap;}
 .pickup-row label{font-size:13px;color:#666;white-space:nowrap;}
 .pickup-row select{flex:1;max-width:300px;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;}
+.cat-nav{display:flex;gap:8px;padding:12px 16px 4px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;background:#fff;z-index:4;border-bottom:1px solid #f0f0f0;}
+.cat-nav::-webkit-scrollbar{display:none;}
+.cat-btn{padding:6px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;font-weight:500;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.cat-btn:hover{border-color:#1D9E75;color:#1D9E75;}
 .menu-area{padding:0 16px;}
+.cat-bar{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.cat-bar::-webkit-scrollbar{display:none;}
+.cat-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;font-weight:500;color:#666;cursor:pointer;white-space:nowrap;}
+.cat-btn:hover{border-color:#1D9E75;color:#1D9E75;}
 .series-banner{margin:16px 0 4px;border-radius:12px;overflow:hidden;}
 .series-banner img{width:100%;display:block;border-radius:12px;}
 .series-title{font-size:13px;font-weight:600;margin:16px 0 4px;padding:6px 12px;border-radius:8px;}
@@ -35,6 +43,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .item-name{font-size:12px;font-weight:600;color:#111;margin-bottom:4px;line-height:1.4;}
 .item-desc{font-size:10px;color:#aaa;line-height:1.5;margin-bottom:6px;}
 .item-price{font-size:13px;font-weight:600;color:#1D9E75;}
+.item-qty-badge{margin-top:6px;font-size:12px;font-weight:600;color:#fff;background:#1D9E75;border-radius:20px;padding:2px 10px;display:inline-block;}
+.item-qty-badge{display:none;margin-top:6px;font-size:12px;font-weight:600;color:#fff;background:#1D9E75;border-radius:6px;padding:3px 8px;text-align:center;}
+.item-qty-badge.show{display:block;}
 .cart-box{background:#f8f8f5;border-radius:12px;padding:14px;margin:14px 16px;}
 .cart-title{font-size:14px;font-weight:600;color:#111;margin-bottom:11px;}
 .cart-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -85,6 +96,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   <label>取貨時間</label>
   <select id="pickupTime"></select>
 </div>
+<div class="cat-bar" id="catBar"></div>
+<div id="catNav" class="cat-nav"></div>
 <div class="menu-area" id="menuArea"></div>
 <div class="cart-box">
   <div class="cart-title">購物車</div>
@@ -240,6 +253,29 @@ function buildTimeSlots() {
 }
 
 
+function buildCatBar(){
+  const bar=document.getElementById('catBar');
+  if(!bar)return;
+  const grouped={};menu.forEach(m=>{grouped[m.series]=grouped[m.series]||[];grouped[m.series].push(m);});
+  bar.innerHTML=SORDER.filter(s=>grouped[s]).map(s=>{
+    const shortName=s.replace(/\s*米粹食物泥|\s*小寶寶粥|\s*大寶寶粥|\s*低調味副食品|\s*飯麵|\s*大寶寶炊飯/g,'').trim();
+    const sid2=s.replace(/[^a-zA-Z0-9]/g,'');
+    return `<button class="cat-btn" onclick="scrollToSeries('${sid2}')">${shortName}</button>`;
+  }).join('');
+}
+function scrollToSeries(id){
+  const el=document.getElementById('series-'+id);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function updateAllBadges(){
+  menu.forEach(item=>{
+    const el=document.getElementById('iqb-'+item.id);
+    if(!el)return;
+    const q=cart[item.id]||0;
+    el.textContent='已選 '+q+' 包';
+    el.classList.toggle('show',q>0);
+  });
+}
 function isNoBeef(){return document.querySelector('input[name=bf]:checked').value==='no';}
 function calcDiscount(){
   const sq={};Object.keys(cart).forEach(id=>{const m=menu.find(x=>x.id==id);if(m)sq[m.series]=(sq[m.series]||0)+cart[id];});
@@ -261,7 +297,12 @@ function updateProgress(){
     const qty=sq[s]||0,maxQ=tiers[tiers.length-1].q;
     bar.style.width=Math.min(qty/maxQ*100,100)+'%';
     const next=tiers.find(t=>t.q>qty);
-    lbl.textContent=next?(qty>0?`已選 ${qty} 包，再 ${next.q-qty} 包可享 ${next.q}入$${next.p} 套組價`:`套組優惠：${tiers.map(t=>t.q+'入$'+t.p).join(' / ')}`):'已達最高套組！';
+    const priceInfo=tiers.map(t=>t.q+'入$'+t.p).join(' / ');
+    if(next){
+      lbl.textContent=qty>0?`已選 ${qty} 包，再 ${next.q-qty} 包可享 ${next.q}入$${next.p} 套組價`:`套組優惠：${priceInfo}`;
+    } else {
+      lbl.textContent=`套組優惠：${priceInfo}（可繼續加購循環套組）`;
+    }
   });
 }
 function renderMenu(){
@@ -269,20 +310,20 @@ function renderMenu(){
   let html='';
   SORDER.forEach(s=>{
     if(!grouped[s])return;const cls=SCLS[s]||'s-4m';const id=sid(s);const imgSrc=SERIES_IMGS[s];
-    if(imgSrc)html+=`<div class="series-banner"><img src="${imgSrc}" alt="${s}" loading="lazy"/></div>`;
-    else html+=`<div class="series-title ${cls}">${s}</div>`;
+    if(imgSrc)html+=`<div class="series-banner" id="series-${id}"><img src="${imgSrc}" alt="${s}" loading="lazy"/></div>`;
+    else html+=`<div class="series-title ${cls}" id="series-${id}">${s}</div>`;
     if(BUNDLES[s]){html+=`<div class="bundle-hint" id="lbl-${id}">${BUNDLES[s].map(t=>t.q+'入$'+t.p).join(' / ')}</div><div class="prog-wrap"><div class="prog-bar" id="bar-${id}" style="width:0%"></div></div>`;}
     html+=`<div class="menu-grid">`;
     grouped[s].forEach(item=>{
       const hide=(isNoBeef()&&BEEF.includes(item.name))?'style="display:none"':'';
-      html+=`<div class="menu-item" onclick="addC(${item.id})" ${hide}><div class="item-name">${item.name}</div>${item.desc?`<div class="item-desc">${item.desc}</div>`:''}<div class="item-price">$${item.price} / 包</div></div>`;
+      html+=`<div class="menu-item" id="item-card-${item.id}" onclick="addC(${item.id})" ${hide}><div class="item-name">${item.name}</div>${item.desc?`<div class="item-desc">${item.desc}</div>`:''}<div class="item-price">$${item.price} / 包</div><div class="item-qty-badge" id="iqb-${item.id}"></div></div>`;
     });
     html+='</div>';
   });
-  document.getElementById('menuArea').innerHTML=html;updateProgress();
+  document.getElementById('menuArea').innerHTML=html;updateProgress();buildCatBar();updateAllBadges();
 }
-function addC(id){cart[id]=(cart[id]||0)+1;renderCart();updateProgress();}
-function chgQ(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];renderCart();updateProgress();}
+function addC(id){cart[id]=(cart[id]||0)+1;renderCart();updateProgress();updateAllBadges();}
+function chgQ(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];renderCart();updateProgress();updateAllBadges();}
 function renderCart(){
   const keys=Object.keys(cart);
   const ci=document.getElementById('cItems'),ce=document.getElementById('cEmpty'),cs=document.getElementById('cTotalSec'),bi=document.getElementById('bInfo');
@@ -324,6 +365,21 @@ async function submitOrder(){
   }catch{alert('無法連線到伺服器');}
   btn.disabled=false;btn.textContent='送出訂單';
 }
+function updateItemBadges(){
+  menu.forEach(item=>{
+    const card=document.getElementById('card-'+item.id);
+    if(!card) return;
+    const qty=cart[item.id]||0;
+    let badge=card.querySelector('.item-qty-badge');
+    if(qty>0){
+      if(!badge){badge=document.createElement('div');badge.className='item-qty-badge';card.appendChild(badge);}
+      badge.textContent='已選 '+qty+' 個';
+    } else {
+      if(badge) badge.remove();
+    }
+  });
+}
+
 async function fetchTicket(){
   try{
     const r=await fetch('/api/next-ticket');
