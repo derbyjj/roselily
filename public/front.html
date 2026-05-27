@@ -21,13 +21,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .pickup-row select{flex:1;max-width:300px;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;}
 .cat-nav{display:flex;gap:8px;padding:12px 16px 4px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;background:#fff;z-index:4;border-bottom:1px solid #f0f0f0;}
 .cat-nav::-webkit-scrollbar{display:none;}
-.cat-btn{padding:6px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;font-weight:500;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-.cat-btn:hover{border-color:#1D9E75;color:#1D9E75;}
+.cat-btn{padding:7px 16px;border-radius:20px;border:1.5px solid #1D9E75;background:#E1F5EE;font-size:13px;font-weight:600;color:#0F6E56;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.cat-btn:hover{background:#1D9E75;color:#fff;}
 .menu-area{padding:0 16px;}
 .cat-bar{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .cat-bar::-webkit-scrollbar{display:none;}
-.cat-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:12px;font-weight:500;color:#666;cursor:pointer;white-space:nowrap;}
-.cat-btn:hover{border-color:#1D9E75;color:#1D9E75;}
+
 .series-banner{margin:16px 0 4px;border-radius:12px;overflow:hidden;}
 .series-banner img{width:100%;display:block;border-radius:12px;}
 .series-title{font-size:13px;font-weight:600;margin:16px 0 4px;padding:6px 12px;border-radius:8px;}
@@ -257,10 +256,19 @@ function buildCatBar(){
   const bar=document.getElementById('catBar');
   if(!bar)return;
   const grouped={};menu.forEach(m=>{grouped[m.series]=grouped[m.series]||[];grouped[m.series].push(m);});
+  const CAT_LABELS={
+    '4M+ 米粹食物泥':'4M+ 米粹',
+    '6M+ 小寶寶粥':'6M+ 小寶寶粥',
+    '10M+ 大寶寶粥':'10M+ 大寶寶粥',
+    '12M+ 拌料':'12M+ 拌料',
+    '12M+ 飯麵':'12M+ 飯麵',
+    '18M+ 大寶寶炊飯':'18M+ 炊飯',
+    '寶寶肉鬆':'寶寶肉鬆',
+  };
   bar.innerHTML=SORDER.filter(s=>grouped[s]).map(s=>{
-    const shortName=s.replace(/\s*米粹食物泥|\s*小寶寶粥|\s*大寶寶粥|\s*低調味副食品|\s*飯麵|\s*大寶寶炊飯/g,'').trim();
+    const label=CAT_LABELS[s]||s;
     const sid2=s.replace(/[^a-zA-Z0-9]/g,'');
-    return `<button class="cat-btn" onclick="scrollToSeries('${sid2}')">${shortName}</button>`;
+    return `<button class="cat-btn" onclick="scrollToSeries('${sid2}')">${label}</button>`;
   }).join('');
 }
 function scrollToSeries(id){
