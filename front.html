@@ -130,8 +130,8 @@ const SERIES_IMGS = {
 };
 const BEEF=['翡翠野味犇牛','若青甜薯鮮牛'];
 const BUNDLES={
-  '4M+ 米粹食物泥':[{q:27,p:1050}],
-  '6M+ 小寶寶粥':[{q:7,p:270},{q:21,p:800}],
+  '4M+ 米粹食物泥':[{q:21,p:799}],
+  '6M+ 小寶寶粥':[{q:7,p:270},{q:21,p:799}],
   '10M+ 大寶寶粥':[{q:9,p:700},{q:20,p:1550}],
   '12M+ 拌料':[{q:7,p:550},{q:14,p:1100},{q:20,p:1550}],
   '18M+ 大寶寶炊飯':[{q:9,p:880},{q:20,p:1900}]
@@ -148,6 +148,7 @@ let menu=[
   {id:7,name:'翠青小白菜米粹',desc:'有機小白菜、有機白米、橄欖油',series:'4M+ 米粹食物泥',price:40},
   {id:8,name:'瓷綠青花纖米粹',desc:'花椰菜、有機白米、橄欖油',series:'4M+ 米粹食物泥',price:40},
   {id:9,name:'寶寶有機白米泥',desc:'有機白米',series:'4M+ 米粹食物泥',price:40},
+  {id:46,name:'墨翠薯葉纖米粹',desc:'地瓜葉、有機白米、橄欖油',series:'4M+ 米粹食物泥',price:40},
   {id:10,name:'翠金青花銀鮭',desc:'白米、南瓜、青花菜、雪白菇、鮭魚、芥花油',series:'6M+ 小寶寶粥',price:39},
   {id:11,name:'紅綠雙鮮珍豬',desc:'白米、高麗菜、紅蘿蔔、小白菜、豬肉(台灣)、芥花油',series:'6M+ 小寶寶粥',price:39},
   {id:12,name:'緋黃甜薯鮪腹',desc:'白米、番薯、青江菜、紅蘿蔔、鮪魚、芥花油',series:'6M+ 小寶寶粥',price:39},
@@ -171,6 +172,7 @@ let menu=[
   {id:30,name:'日式洋芋燉肉',desc:'馬鈴薯、胡蘿蔔、白蘿蔔、鴻禧菇、豬肉(台灣)、洋蔥、醬油',series:'12M+ 拌料',price:79},
   {id:31,name:'味噌野菜銀鮭',desc:'銀鮭、白蘿蔔、大白菜、紅蘿蔔、鴻禧菇、豆皮、木耳、味噌',series:'12M+ 拌料',price:79},
   {id:32,name:'醬香蘿蔔燉肉',desc:'豬肉(台灣)、白蘿蔔、洋蔥、豆腐、香菇、醬油、蠔油',series:'12M+ 拌料',price:79},
+  {id:47,name:'開陽翠玉雞蓉',desc:'高麗菜、雞肉、絲瓜、鴻喜菇、木耳、雞蛋、蒜頭、蝦米、柴魚露、芥花油',series:'12M+ 拌料',price:79},
   {id:33,name:'寶寶紅藜白米飯',desc:'白米、有機紅藜麥、油',series:'12M+ 飯麵',price:30},
   {id:34,name:'寶寶履歷黑米飯',desc:'白米、履歷黑糙米、油',series:'12M+ 飯麵',price:30},
   {id:35,name:'寶寶履歷糙米飯',desc:'白米、履歷糙米、油',series:'12M+ 飯麵',price:30},
@@ -324,7 +326,7 @@ function renderMenu(){
     html+=`<div class="menu-grid">`;
     grouped[s].forEach(item=>{
       const hide=(isNoBeef()&&BEEF.includes(item.name))?'style="display:none"':'';
-      html+=`<div class="menu-item" id="item-card-${item.id}" onclick="addC(${item.id})" ${hide}><div class="item-name">${item.name}</div>${item.desc?`<div class="item-desc">${item.desc}</div>`:''}<div class="item-price">$${item.price} / 包</div><div class="item-qty-badge" id="iqb-${item.id}"></div></div>`;
+      html+=`<div class="menu-item" id="item-card-${item.id}" onclick="addC(${item.id})" ${hide}><div class="item-name">${item.name}</div>${item.desc?`<div class="item-desc">${item.desc}</div>`:''}<div class="item-price">$${item.price} / 份</div><div class="item-qty-badge" id="iqb-${item.id}"></div></div>`;
     });
     html+='</div>';
   });
